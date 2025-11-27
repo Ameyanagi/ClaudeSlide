@@ -269,14 +269,7 @@ npx claudeslide init your-template.pptx --name test-project
 ## リンク
 
 - [npm: claudeslide](https://www.npmjs.com/package/claudeslide)
-- [GitHub: claude-slide](https://github.com/Ameyanagi/claude-slide)
-
-## 参考
-
-- [Gemini 3.0のSVG図解作成機能](https://gai.workstyle-evolution.co.jp/2025/11/21/gemini-3-svg-diagram-generation-business-revolution/)
-- [Nano Banana Pro - Gemini の AI 画像生成](https://gemini.google/jp/overview/image-generation/)
-- [GeminiアプリのCanvasでスライド生成](https://forest.watch.impress.co.jp/docs/news/2059551.html)
-- [SVGスライドをGeminiで生成するプロンプト術](https://note.com/note_tds/n/n9073cd00065b)
+- [GitHub: claude-slide](https://github.com/Ameyanagi/ClaudeSlide)
 
 ## ライセンス
 
