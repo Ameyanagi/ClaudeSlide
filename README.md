@@ -33,6 +33,18 @@ This approach gives you the full power of natural language instructions for pres
 - Generate SVG graphics for complex visuals
 - Fix broken presentations
 
+## Example
+
+Check out the [example repository](https://github.com/Ameyanagi/claudeslide_example) to see ClaudeSlide in action.
+
+**Sample slides generated/edited by Claude:**
+
+| | | |
+|:---:|:---:|:---:|
+| ![Slide 1](https://raw.githubusercontent.com/Ameyanagi/claudeslide_example/main/preview/slide-1.png) | ![Slide 2](https://raw.githubusercontent.com/Ameyanagi/claudeslide_example/main/preview/slide-2.png) | ![Slide 3](https://raw.githubusercontent.com/Ameyanagi/claudeslide_example/main/preview/slide-3.png) |
+| ![Slide 4](https://raw.githubusercontent.com/Ameyanagi/claudeslide_example/main/preview/slide-4.png) | ![Slide 5](https://raw.githubusercontent.com/Ameyanagi/claudeslide_example/main/preview/slide-5.png) | ![Slide 6](https://raw.githubusercontent.com/Ameyanagi/claudeslide_example/main/preview/slide-6.png) |
+| ![Slide 7](https://raw.githubusercontent.com/Ameyanagi/claudeslide_example/main/preview/slide-7.png) | ![Slide 8](https://raw.githubusercontent.com/Ameyanagi/claudeslide_example/main/preview/slide-8.png) | ![Slide 9](https://raw.githubusercontent.com/Ameyanagi/claudeslide_example/main/preview/slide-9.png) |
+
 ## Installation
 
 ```bash

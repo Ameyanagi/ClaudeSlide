@@ -35,6 +35,18 @@ Claude Opus 4.5は：
 
 この能力を最大限に活用すれば、パワポを直接編集できるはずだと考えました。
 
+## サンプル
+
+[サンプルリポジトリ](https://github.com/Ameyanagi/claudeslide_example)でClaudeSlideの実際の動作を確認できます。
+
+**Claudeが生成・編集したスライドの例：**
+
+| | | |
+|:---:|:---:|:---:|
+| ![Slide 1](https://raw.githubusercontent.com/Ameyanagi/claudeslide_example/main/preview/slide-1.png) | ![Slide 2](https://raw.githubusercontent.com/Ameyanagi/claudeslide_example/main/preview/slide-2.png) | ![Slide 3](https://raw.githubusercontent.com/Ameyanagi/claudeslide_example/main/preview/slide-3.png) |
+| ![Slide 4](https://raw.githubusercontent.com/Ameyanagi/claudeslide_example/main/preview/slide-4.png) | ![Slide 5](https://raw.githubusercontent.com/Ameyanagi/claudeslide_example/main/preview/slide-5.png) | ![Slide 6](https://raw.githubusercontent.com/Ameyanagi/claudeslide_example/main/preview/slide-6.png) |
+| ![Slide 7](https://raw.githubusercontent.com/Ameyanagi/claudeslide_example/main/preview/slide-7.png) | ![Slide 8](https://raw.githubusercontent.com/Ameyanagi/claudeslide_example/main/preview/slide-8.png) | ![Slide 9](https://raw.githubusercontent.com/Ameyanagi/claudeslide_example/main/preview/slide-9.png) |
+
 ## ClaudeSlideとは
 
 ClaudeSlideは、PowerPointファイルをClaude Codeで編集するためのCLIツールです。
@@ -270,6 +282,7 @@ npx claudeslide init your-template.pptx --name test-project
 
 - [npm: claudeslide](https://www.npmjs.com/package/claudeslide)
 - [GitHub: claude-slide](https://github.com/Ameyanagi/ClaudeSlide)
+- [サンプルリポジトリ](https://github.com/Ameyanagi/claudeslide_example)
 
 ## ライセンス
 
