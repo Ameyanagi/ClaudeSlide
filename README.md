@@ -2,6 +2,8 @@
 
 **Edit PowerPoint presentations using Claude's native XML understanding.**
 
+English | [日本語](./README_JP.md)
+
 ClaudeSlide transforms PPTX files into an editable workspace where Claude can directly read, understand, and modify presentation content through XML manipulation.
 
 ## Why ClaudeSlide?
