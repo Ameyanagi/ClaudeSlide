@@ -1,0 +1,138 @@
+export function generateClaudeMd(projectName, info) {
+    const title = info.title || projectName;
+    const slidesList = info.slides
+        .map((s) => `| ${s.number} | ${s.title} | ${s.contentPreview ? s.contentPreview.substring(0, 50) + "..." : ""} |`)
+        .join("\n");
+    return `# ${title}
+
+This is a ClaudeSlide project. The PowerPoint has been extracted to editable XML files in the \`work/\` directory.
+
+## Project Info
+
+- **Project Name**: ${projectName}
+- **Presentation Title**: ${info.title || "(No title)"}
+- **Author**: ${info.author || "(Unknown)"}
+- **Slide Count**: ${info.slideCount} slides
+- **Created**: ${new Date().toISOString().split("T")[0]}
+
+## Slide Overview
+
+| # | Title | Content Preview |
+|---|-------|-----------------|
+${slidesList}
+
+## File Structure
+
+| Location | Purpose |
+|----------|---------|
+| \`work/ppt/slides/slide*.xml\` | Individual slide content (text, shapes, images) |
+| \`work/ppt/slideLayouts/\` | Layout templates that slides reference |
+| \`work/ppt/slideMasters/\` | Master slides defining overall look |
+| \`work/ppt/theme/theme1.xml\` | Colors, fonts, and effects |
+| \`work/ppt/media/\` | Embedded images and media files |
+| \`work/ppt/_rels/presentation.xml.rels\` | Slide order and relationships |
+| \`work/[Content_Types].xml\` | File type manifest |
+
+## Common Editing Tasks
+
+### Edit slide text
+Look in \`work/ppt/slides/slideN.xml\` for \`<a:t>\` tags containing text content.
+
+### Change slide order
+Modify \`work/ppt/_rels/presentation.xml.rels\` to reorder slide relationships.
+
+### Add an image
+1. Add image file to \`work/ppt/media/\`
+2. Add relationship in relevant \`work/_rels/*.xml.rels\`
+3. Reference in slide XML
+4. Add content type in \`work/[Content_Types].xml\` if new format
+
+### Generate SVG graphics
+If you need to create diagrams, charts, or custom graphics:
+
+1. Generate an SVG file and save it to \`work/ppt/media/imageN.svg\`
+2. Add to \`work/[Content_Types].xml\`:
+   \`\`\`xml
+   <Default Extension="svg" ContentType="image/svg+xml"/>
+   \`\`\`
+3. Add relationship in the slide's \`_rels/slideN.xml.rels\`:
+   \`\`\`xml
+   <Relationship Id="rIdX" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/imageN.svg"/>
+   \`\`\`
+4. Reference in slide XML using \`<a:blip r:embed="rIdX"/>\`
+
+SVG is ideal for:
+- Flowcharts and diagrams
+- Icons and logos
+- Charts and graphs
+- Any scalable vector graphics
+
+## Editing Permissions
+
+You are allowed to make any changes necessary to complete the user's request, including:
+
+- **Add slides**: Create new slides when more content space is needed
+- **Delete slides**: Remove slides that are no longer relevant or requested
+- **Restructure**: Reorder, merge, or split slides as needed
+- **Modify content**: Edit text, shapes, images, and formatting freely
+
+Use your judgment to improve the presentation. If a task would benefit from adding or removing slides, do so without asking for permission.
+
+## Best Practices
+
+### Use Slide Masters
+When adding new slides, use the appropriate slide layout from \`work/ppt/slideLayouts/\`. Check existing slides to see which layouts are available and match the presentation's style. Reference the layout in the slide's relationship file.
+
+### Quality Assurance Workflow
+Before delivering the final result to the user:
+
+1. **Validate**: Run \`npm run validate\` to check for XML errors
+2. **Preview**: Run \`npm run preview\` to generate slide images
+3. **Review**: Read the preview images to visually inspect the changes
+4. **Iterate**: If something looks wrong, fix it and preview again
+5. **Save**: Run \`npm run save\` to create the final PPTX file
+6. **Deliver**: Report completion to the user with the saved file location
+
+Always verify your changes visually and save the PPTX before considering the task complete.
+
+## Important Rules
+
+1. **Validate before saving**: Always run \`npm run validate\` before \`npm run save\`
+2. **Preserve relationship IDs**: Each \`rId\` links files together - don't break these
+3. **Maintain XML validity**: Ensure all tags are properly closed
+4. **Update [Content_Types].xml**: When adding new file types
+
+## Preview (if LibreOffice installed)
+
+Run \`npm run preview\` to generate slide images in \`preview/\` folder.
+
+## Workflow
+
+\`\`\`bash
+# Edit XML files in work/ directory
+npm run validate  # Check validity
+npm run preview   # See changes (optional)
+npm run save      # Create .pptx
+\`\`\`
+
+## Custom Commands
+
+The following slash commands are available in this project:
+
+- \`/save\` - Validate and save the presentation
+- \`/validate\` - Check XML validity
+- \`/preview\` - Generate slide previews
+
+## XML Namespace Reference
+
+Common namespaces you'll encounter:
+- \`a:\` - DrawingML (shapes, text, graphics)
+- \`r:\` - Relationships
+- \`p:\` - PresentationML (slides, layouts)
+
+---
+
+*Generated by ClaudeSlide v1.0.0*
+`;
+}
+//# sourceMappingURL=claude-md.js.map

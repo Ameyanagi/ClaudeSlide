@@ -1,0 +1,1 @@
+{"version":3,"file":"claude-commands.js","sourceRoot":"","sources":["../../src/templates/claude-commands.ts"],"names":[],"mappings":"AAAA,MAAM,UAAU,sBAAsB;IACpC,OAAO;QACL,SAAS,EAAE;;;;;;;;;;;CAWd;QAEG,aAAa,EAAE;;;;;;;;;;;;;CAalB;QAEG,YAAY,EAAE;;;;;;;;;;;CAWjB;QAEG,cAAc,EAAE;;;;;;;;;;;;;CAanB;QAEG,eAAe,EAAE;;;;;;;;;;;;;;;;CAgBpB;KACE,CAAC;AACJ,CAAC"}
