@@ -5,6 +5,10 @@ import fs from "fs-extra";
 import { glob } from "glob";
 import { XMLValidator } from "fast-xml-parser";
 
+interface ValidateOptions {
+  fix?: boolean;
+}
+
 interface ValidationError {
   severity: "error" | "warning" | "info";
   code: string;
@@ -12,6 +16,8 @@ interface ValidationError {
   file?: string;
   line?: number;
   suggestion?: string;
+  fixable?: boolean;
+  fixAction?: () => boolean; // Returns true if fix was successful
 }
 
 interface ValidationResult {
@@ -21,7 +27,7 @@ interface ValidationResult {
   info: ValidationError[];
 }
 
-export async function validateCommand(): Promise<void> {
+export async function validateCommand(options: ValidateOptions = {}): Promise<void> {
   const cwd = process.cwd();
 
   // Check if we're in a ClaudeSlide project
@@ -41,9 +47,47 @@ export async function validateCommand(): Promise<void> {
 
   const spinner = ora("Validating XML files...").start();
 
-  const result = await validate(workDir);
+  let result = await validate(workDir);
 
   spinner.stop();
+
+  // If --fix is enabled and there are fixable errors, attempt to fix them
+  if (options.fix && (result.errors.some(e => e.fixable) || result.warnings.some(w => w.fixable))) {
+    console.log(chalk.cyan("\nAttempting to fix recoverable errors...\n"));
+
+    let fixedCount = 0;
+    let failedCount = 0;
+
+    // Fix errors first
+    for (const error of [...result.errors, ...result.warnings]) {
+      if (error.fixable && error.fixAction) {
+        try {
+          const fixed = error.fixAction();
+          if (fixed) {
+            console.log(chalk.green(`  ✓ Fixed: ${error.message}`));
+            fixedCount++;
+          } else {
+            console.log(chalk.red(`  ✗ Could not fix: ${error.message}`));
+            failedCount++;
+          }
+        } catch (err) {
+          console.log(chalk.red(`  ✗ Error fixing: ${error.message}`));
+          failedCount++;
+        }
+      }
+    }
+
+    console.log();
+    console.log(chalk.cyan(`Fixed ${fixedCount} issue(s), ${failedCount} could not be fixed`));
+
+    // Re-validate after fixes
+    if (fixedCount > 0) {
+      console.log(chalk.cyan("\nRe-validating after fixes...\n"));
+      const revalidateSpinner = ora("Re-validating...").start();
+      result = await validate(workDir);
+      revalidateSpinner.stop();
+    }
+  }
 
   // Display results
   if (result.errors.length === 0 && result.warnings.length === 0) {
@@ -61,6 +105,9 @@ export async function validateCommand(): Promise<void> {
     if (error.suggestion) {
       console.log(chalk.yellow(`  Suggestion: ${error.suggestion}`));
     }
+    if (error.fixable && !options.fix) {
+      console.log(chalk.cyan(`  Fixable: Run with --fix to auto-repair`));
+    }
   }
 
   // Show warnings
@@ -72,6 +119,9 @@ export async function validateCommand(): Promise<void> {
     }
     if (warning.suggestion) {
       console.log(chalk.cyan(`  Suggestion: ${warning.suggestion}`));
+    }
+    if (warning.fixable && !options.fix) {
+      console.log(chalk.cyan(`  Fixable: Run with --fix to auto-repair`));
     }
   }
 
@@ -87,11 +137,15 @@ export async function validateCommand(): Promise<void> {
   // Summary
   console.log();
   if (result.errors.length > 0) {
+    const fixableCount = result.errors.filter(e => e.fixable).length + result.warnings.filter(w => w.fixable).length;
     console.log(
       chalk.red(
         `Found ${result.errors.length} error(s), ${result.warnings.length} warning(s)`
       )
     );
+    if (fixableCount > 0 && !options.fix) {
+      console.log(chalk.cyan(`${fixableCount} issue(s) may be auto-fixable. Run with --fix to attempt repair.`));
+    }
     process.exit(1);
   } else {
     console.log(
@@ -136,13 +190,22 @@ async function validate(workDir: string): Promise<ValidationResult> {
       const result = XMLValidator.validate(content, { allowBooleanAttributes: true });
 
       if (result !== true) {
+        const errorMsg = result.err.msg;
+        const errorLine = result.err.line;
+
+        // Check if this is an unclosed tag error that we can fix
+        const unclosedTagMatch = errorMsg.match(/Expected closing tag '([^']+)'/);
+        const isUnclosedTagError = unclosedTagMatch !== null;
+
         errors.push({
           severity: "error",
           code: "MALFORMED_XML",
-          message: `XML syntax error: ${result.err.msg}`,
+          message: `XML syntax error: ${errorMsg}`,
           file,
-          line: result.err.line,
+          line: errorLine,
           suggestion: "Fix the XML syntax error and run validation again.",
+          fixable: isUnclosedTagError,
+          fixAction: isUnclosedTagError ? () => fixUnclosedTag(filePath, unclosedTagMatch![1], errorLine) : undefined,
         });
       }
     } catch (err) {
@@ -163,11 +226,12 @@ async function validate(workDir: string): Promise<ValidationResult> {
     try {
       const content = fs.readFileSync(relsPath, "utf-8");
 
-      // Extract Target attributes from relationships
-      const targetMatches = content.matchAll(/Target="([^"]+)"/g);
+      // Extract Relationship elements with their Target attributes
+      const relationshipMatches = content.matchAll(/<Relationship[^>]*Target="([^"]+)"[^>]*\/>/g);
 
-      for (const match of targetMatches) {
+      for (const match of relationshipMatches) {
         const target = match[1];
+        const fullMatch = match[0];
 
         // Skip external relationships (URLs)
         if (target.startsWith("http://") || target.startsWith("https://")) {
@@ -186,6 +250,8 @@ async function validate(workDir: string): Promise<ValidationResult> {
             message: `Broken relationship: ${target} does not exist`,
             file: relsFile,
             suggestion: `Add the missing file or remove the relationship from ${relsFile}`,
+            fixable: true,
+            fixAction: () => removeRelationshipEntry(relsPath, fullMatch),
           });
         }
       }
@@ -201,10 +267,11 @@ async function validate(workDir: string): Promise<ValidationResult> {
       const content = fs.readFileSync(contentTypesPath, "utf-8");
 
       // Check Override entries point to existing files
-      const overrideMatches = content.matchAll(/PartName="([^"]+)"/g);
+      const overrideMatches = content.matchAll(/<Override[^>]*PartName="([^"]+)"[^>]*\/>/g);
 
       for (const match of overrideMatches) {
         const partName = match[1];
+        const fullMatch = match[0];
         // PartName starts with /, remove it for file path
         const filePath = partName.startsWith("/") ? partName.slice(1) : partName;
         const fullPath = path.join(workDir, filePath);
@@ -216,6 +283,8 @@ async function validate(workDir: string): Promise<ValidationResult> {
             message: `Content-Types references missing file: ${partName}`,
             file: "[Content_Types].xml",
             suggestion: `Remove the Override entry or add the file: ${filePath}`,
+            fixable: true,
+            fixAction: () => removeContentTypeEntry(contentTypesPath, fullMatch),
           });
         }
       }
@@ -236,12 +305,16 @@ async function validate(workDir: string): Promise<ValidationResult> {
 
       for (const slideFile of slideFiles) {
         if (!relsContent.includes(`slides/${slideFile}`)) {
+          const orphanSlidePath = path.join(slidesDir, slideFile);
+          const orphanSlideRelsPath = path.join(slidesDir, "_rels", `${slideFile}.rels`);
           warnings.push({
             severity: "warning",
             code: "ORPHAN_SLIDE",
             message: `Slide not referenced in presentation: ${slideFile}`,
             file: `ppt/slides/${slideFile}`,
             suggestion: "Add a relationship in ppt/_rels/presentation.xml.rels or delete the orphan slide",
+            fixable: true,
+            fixAction: () => deleteOrphanSlide(orphanSlidePath, orphanSlideRelsPath),
           });
         }
       }
@@ -254,6 +327,139 @@ async function validate(workDir: string): Promise<ValidationResult> {
     warnings,
     info,
   };
+}
+
+// Fix helper functions
+
+/**
+ * Attempts to fix unclosed XML tags by inserting the closing tag
+ */
+function fixUnclosedTag(filePath: string, tagName: string, errorLine: number): boolean {
+  try {
+    const content = fs.readFileSync(filePath, "utf-8");
+    const lines = content.split("\n");
+
+    if (errorLine <= 0 || errorLine > lines.length) {
+      return false;
+    }
+
+    const lineIndex = errorLine - 1;
+    const line = lines[lineIndex];
+
+    // Find the opening tag in the line
+    const openTagRegex = new RegExp(`<${tagName}[^>]*>`, "g");
+    const closeTag = `</${tagName}>`;
+
+    // Check if the tag is opened but not closed on this line
+    const openMatches = line.match(openTagRegex);
+    const closeMatches = line.match(new RegExp(closeTag, "g"));
+
+    if (openMatches && (!closeMatches || openMatches.length > closeMatches.length)) {
+      // Find where to insert the closing tag
+      // Look for the next tag start after the open tag
+      let fixedLine = line;
+
+      // Strategy: Find unclosed <a:t> and close it before the next < that's not part of it
+      // This handles cases like: <a:t>some text<a:r> (missing </a:t>)
+      const pattern = new RegExp(`(<${tagName}[^>]*>)([^<]*)(<(?!/${tagName}))`, "g");
+      fixedLine = line.replace(pattern, `$1$2${closeTag}$3`);
+
+      // If that didn't work, try closing at end of text content
+      if (fixedLine === line) {
+        // Try finding text content after the opening tag and close it
+        const simplePattern = new RegExp(`(<${tagName}[^>]*>)([^<]+)$`);
+        fixedLine = line.replace(simplePattern, `$1$2${closeTag}`);
+      }
+
+      if (fixedLine !== line) {
+        lines[lineIndex] = fixedLine;
+        fs.writeFileSync(filePath, lines.join("\n"));
+        return true;
+      }
+    }
+
+    // Alternative: Try to find and fix across the file
+    // Look for opening tag without corresponding close
+    const allOpenTags = content.match(new RegExp(`<${tagName}[^/>]*>`, "g")) || [];
+    const allCloseTags = content.match(new RegExp(`</${tagName}>`, "g")) || [];
+
+    if (allOpenTags.length > allCloseTags.length) {
+      // There's an unclosed tag somewhere - try a more aggressive fix
+      // Find text like <a:t>content</ and fix to <a:t>content</a:t></
+      const brokenPattern = new RegExp(`(<${tagName}[^>]*>[^<]*)(</(?!${tagName}))`, "g");
+      const fixedContent = content.replace(brokenPattern, `$1${closeTag}$2`);
+
+      if (fixedContent !== content) {
+        fs.writeFileSync(filePath, fixedContent);
+        return true;
+      }
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Removes a broken relationship entry from a .rels file
+ */
+function removeRelationshipEntry(relsPath: string, entryToRemove: string): boolean {
+  try {
+    let content = fs.readFileSync(relsPath, "utf-8");
+
+    // Remove the entry (handle both with and without newlines)
+    const escapedEntry = entryToRemove.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const pattern = new RegExp(`\\s*${escapedEntry}\\s*`, "g");
+    const newContent = content.replace(pattern, "\n");
+
+    if (newContent !== content) {
+      fs.writeFileSync(relsPath, newContent);
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Removes a missing content type override entry
+ */
+function removeContentTypeEntry(contentTypesPath: string, entryToRemove: string): boolean {
+  try {
+    let content = fs.readFileSync(contentTypesPath, "utf-8");
+
+    // Remove the entry
+    const escapedEntry = entryToRemove.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const pattern = new RegExp(`\\s*${escapedEntry}\\s*`, "g");
+    const newContent = content.replace(pattern, "\n");
+
+    if (newContent !== content) {
+      fs.writeFileSync(contentTypesPath, newContent);
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Deletes an orphan slide file and its relationship file
+ */
+function deleteOrphanSlide(slidePath: string, slideRelsPath: string): boolean {
+  try {
+    if (fs.existsSync(slidePath)) {
+      fs.unlinkSync(slidePath);
+    }
+    if (fs.existsSync(slideRelsPath)) {
+      fs.unlinkSync(slideRelsPath);
+    }
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export { validate };

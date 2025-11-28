@@ -9,5 +9,5 @@ export interface PresentationInfo {
     slideCount: number;
     slides: SlideInfo[];
 }
-export declare function generateClaudeMd(projectName: string, info: PresentationInfo): string;
+export declare function generateClaudeMd(projectName: string, info: PresentationInfo, language?: string): string;
 //# sourceMappingURL=claude-md.d.ts.map

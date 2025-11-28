@@ -7,6 +7,7 @@ import AdmZip from "adm-zip";
 import { execSync } from "child_process";
 import { XMLParser } from "fast-xml-parser";
 import { generateClaudeMd } from "../templates/claude-md.js";
+import { generateDesignGuide } from "../templates/design-guide.js";
 import { generatePackageJson } from "../templates/package-json.js";
 import { generateGitignore } from "../templates/gitignore.js";
 import { generateClaudeCommands } from "../templates/claude-commands.js";
@@ -53,6 +54,14 @@ export async function initCommand(pptxFile, options) {
                 },
             });
         }
+        // Get language (prompt if not provided)
+        let language = options.language;
+        if (!language) {
+            language = await input({
+                message: "Slide content language:",
+                default: "English",
+            });
+        }
         // Determine output directory
         const outputDir = options.output
             ? path.resolve(options.output)
@@ -66,10 +75,12 @@ export async function initCommand(pptxFile, options) {
             }
             fs.removeSync(outputDir);
         }
-        // Create output directory and work subdirectory
+        // Create output directory, work subdirectory, and scripts directory
         fs.ensureDirSync(outputDir);
         const workDir = path.join(outputDir, "work");
         fs.ensureDirSync(workDir);
+        fs.ensureDirSync(path.join(outputDir, "scripts"));
+        fs.ensureDirSync(path.join(outputDir, "outlines"));
         // Extract PPTX into work/ subdirectory
         const spinner = ora("Extracting PowerPoint file...").start();
         try {
@@ -105,7 +116,9 @@ export async function initCommand(pptxFile, options) {
             spaces: 2,
         });
         // Generate CLAUDE.md
-        fs.writeFileSync(path.join(outputDir, "CLAUDE.md"), generateClaudeMd(projectName, presentationInfo));
+        fs.writeFileSync(path.join(outputDir, "CLAUDE.md"), generateClaudeMd(projectName, presentationInfo, language));
+        // Generate DESIGN-GUIDE.md
+        fs.writeFileSync(path.join(outputDir, "DESIGN-GUIDE.md"), generateDesignGuide());
         // Generate .claude/commands/ directory with custom commands
         const commandsDir = path.join(outputDir, ".claude", "commands");
         fs.ensureDirSync(commandsDir);

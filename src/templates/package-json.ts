@@ -6,6 +6,7 @@ export function generatePackageJson(projectName: string): object {
     scripts: {
       save: "claudeslide save",
       validate: "claudeslide validate",
+      fix: "claudeslide validate --fix",
       preview: "claudeslide preview",
       restore: "claudeslide restore",
     },

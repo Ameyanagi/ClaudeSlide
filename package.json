@@ -1,6 +1,6 @@
 {
   "name": "claudeslide",
-  "version": "1.2.2",
+  "version": "1.4.0",
   "description": "CLI tool for editing PowerPoint files with AI assistance",
   "type": "module",
   "main": "./dist/cli.js",
@@ -25,7 +25,8 @@
   "license": "MIT",
   "files": [
     "dist",
-    "templates"
+    "templates",
+    "package.json"
   ],
   "engines": {
     "node": ">=18.0.0"

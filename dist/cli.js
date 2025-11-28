@@ -4,11 +4,14 @@ import { initCommand } from "./commands/init.js";
 import { validateCommand } from "./commands/validate.js";
 import { saveCommand } from "./commands/save.js";
 import { previewCommand } from "./commands/preview.js";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const pkg = require("../package.json");
 const program = new Command();
 program
     .name("claudeslide")
     .description("CLI tool for editing PowerPoint files with AI assistance")
-    .version("1.0.0");
+    .version(pkg.version);
 program
     .command("init")
     .description("Extract a PPTX file and initialize a project for editing")
@@ -17,10 +20,12 @@ program
     .option("-o, --output <dir>", "Output directory")
     .option("-f, --force", "Overwrite existing directory", false)
     .option("--no-git", "Skip git initialization")
+    .option("-l, --language <lang>", "Language for slide content (e.g., English, Japanese)")
     .action(initCommand);
 program
     .command("validate")
     .description("Validate XML files in the current project")
+    .option("--fix", "Attempt to auto-fix recoverable errors")
     .action(validateCommand);
 program
     .command("save")

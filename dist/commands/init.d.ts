@@ -3,6 +3,7 @@ interface InitOptions {
     output?: string;
     force?: boolean;
     git?: boolean;
+    language?: string;
 }
 export declare function initCommand(pptxFile: string | undefined, options: InitOptions): Promise<void>;
 export {};
